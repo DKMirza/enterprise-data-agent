@@ -1,6 +1,24 @@
 # Enterprise Data Migration Platform
 
-AI-powered CRM modernization and data quality platform with human-in-the-loop approval.
+An enterprise-grade AI platform that automates legacy CRM modernization with human-in-the-loop oversight. This system addresses the critical challenge of migrating dirty, inconsistent data from legacy systems to modern platforms while maintaining auditability and control.
+
+## Problem Statement
+
+Enterprise organizations face significant challenges when modernizing legacy CRM systems:
+- **Data Quality Issues**: Duplicates, missing fields, inconsistent formats, and conflicting records
+- **Migration Risk**: Direct AI-driven changes can introduce errors without human oversight
+- **Audit Requirements**: Enterprise environments require explainable decisions and approval workflows
+- **Cost & Time**: Manual data cleaning is expensive and error-prone
+
+## Solution
+
+This platform combines **deterministic rules** with **AI reasoning** to:
+1.  **Analyze** legacy CRM databases for quality issues
+2.  **Recommend** migrations, merges, deletions with confidence scores
+3.  **Explain** the evidence behind each recommendation (e.g., "Same domain + similar name = 97% match")
+4.  **Require Human Approval** before executing high-risk changes
+5.  **Validate** results in a sandbox environment before production deployment
+
 
 ## Architecture
 
@@ -31,13 +49,13 @@ graph TD
 
 ## Tech Stack
 
-| Component | Technology |
-|-----------|------------|
-| **Backend** | Python 3.12 + FastAPI |
-| **Database** | PostgreSQL (Docker) |
-| **Containerization** | Docker Compose |
-| **Data Generation** | Faker Library |
-| **Analysis** | Pandas + Standard Library |
+| Component | Technology | Why It Matters |
+|-----------|------------|----------------|
+| **Backend** | Python 3.12 + FastAPI | Production-ready async framework with auto-generated docs |
+| **Database** | PostgreSQL (Docker) | Enterprise-grade relational database for structured data |
+| **Containerization** | Docker Compose | Reproducible environments, easy deployment |
+| **Data Generation** | Faker Library | Realistic synthetic data for testing without PII concerns |
+| **Analysis** | Pandas + Standard Library | Efficient data processing and quality metrics |
 
 ## Quick Start
 
