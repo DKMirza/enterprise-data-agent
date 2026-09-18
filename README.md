@@ -47,6 +47,13 @@ graph TD
 - **Containerized Infrastructure**: Docker Compose setup for isolated backend and PostgreSQL database.
 - **FastAPI Backend**: RESTful API endpoints for data generation and quality reporting.
 
+## Features (Phase 2)
+
+- **AI-Powered Duplicate Detection**: Identifies duplicate records using domain-based blocking and weighted confidence scoring.
+- **Risk Level Classification**: Categorizes duplicates as LOW (auto-merge), MEDIUM (review required), or HIGH (investigate).
+- **Evidence-Based Recommendations**: Each recommendation includes specific reasons (e.g., "Same website domain", "97% name match").
+- **NaN Handling**: Robust handling of missing values from CSV data.
+
 ## Tech Stack
 
 | Component | Technology | Why It Matters |
@@ -78,6 +85,9 @@ curl -X POST http://localhost:8000/generate-synthetic-data
 
 # Get quality report (GET request)
 curl http://localhost:8000/quality-report
+
+# Detect duplicates with AI (POST request)
+curl -X POST http://localhost:8000/detect-duplicates
 ```
 
 ## API Documentation
@@ -89,8 +99,8 @@ Once running, visit the auto-generated Swagger UI at http://localhost:8000/docs
 | Phase | Description | Status |
 |-----------|------------|------------|
 | **1** | Data Engine & Synthetic Generation | ✅ |
-| **2** | AI Analysis (LLM Duplicate Detection) | ⏳ |
-| **3** | Entity Resolution (Fuzzy Matching + AI)	 | 🔜 |
+| **2** | AI Analysis (LLM Duplicate Detection) | ✅ |
+| **3** | Entity Resolution (Fuzzy Matching + AI)  | 🔜 |
 | **4** | Human Approval UI (React Frontend) | 🔜 |
 | **5** | Migration Simulator & Sandbox | 🔜 |
 | **6** | Production Engineering (CI/CD, Tests) | 🔜 |
