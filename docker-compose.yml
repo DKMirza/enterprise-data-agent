@@ -19,6 +19,8 @@ services:
       - db
     environment:
       DATABASE_URL: postgresql://admin:password@db:5432/crm_migration_db
+    volumes:
+      - ./backend:/app  # Mount local backend code for live updates
 
 volumes:
   pgdata:

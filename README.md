@@ -81,13 +81,13 @@ cd enterprise-data-agent
 docker compose up --build
 
 # Generate synthetic data (POST request)
-curl -X POST http://localhost:8000/generate-synthetic-data
+Invoke-WebRequest -Uri "http://localhost:8000/generate-synthetic-data" -Method POST
 
 # Get quality report (GET request)
 curl http://localhost:8000/quality-report
 
 # Detect duplicates with AI (POST request)
-curl -X POST http://localhost:8000/detect-duplicates
+Invoke-WebRequest -Uri "http://localhost:8000/detect-duplicates" -Method POST | Select-Object -ExpandProperty Content | ConvertFrom-Json
 ```
 
 ## API Documentation
