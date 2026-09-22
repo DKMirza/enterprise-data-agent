@@ -54,6 +54,17 @@ graph TD
 - **Evidence-Based Recommendations**: Each recommendation includes specific reasons (e.g., "Same website domain", "97% name match").
 - **NaN Handling**: Robust handling of missing values from CSV data.
 
+## Features (Phase 3)
+
+- **Entity Resolution Service**: Advanced AI-powered record linkage using fuzzy matching algorithms
+- **Batch Entity Resolution** (`/resolve-entities`): Find all potential duplicate pairs in a dataset with confidence scoring
+- **Single Record Lookup** (`/find-best-match`): Find the best matching record for a query against candidate records
+- **Multi-Field Similarity Analysis**: Compares name, domain, industry, address, phone using weighted algorithms
+- **Confidence Thresholds**: 
+  - HIGH (≥0.90): AUTO_MERGE - Safe to merge automatically
+  - MEDIUM (0.75-0.89): REVIEW_REQUIRED - Manual review recommended
+  - LOW (0.60-0.74): INVESTIGATE - Low confidence, investigate further
+
 ## Tech Stack
 
 | Component | Technology | Why It Matters |
@@ -94,13 +105,192 @@ Invoke-WebRequest -Uri "http://localhost:8000/detect-duplicates" -Method POST | 
 
 Once running, visit the auto-generated Swagger UI at http://localhost:8000/docs
 
+### Entity Resolution API Endpoints (Phase 3)
+
+#### POST /resolve-entities
+
+**Description**: Batch entity resolution for multiple records using AI-powered record linkage. This endpoint identifies all potential duplicate pairs in a dataset with confidence scores and risk assessments.
+
+**Request Body**:
+```json
+{
+  "records": [
+    {
+      "id": "R1",
+      "name": "Acme Corp",
+      "domain": "acme.com",
+      "industry": "Technology",
+      "address": "123 Main St, San Francisco, CA",
+      "phone": "+1-415-555-0100"
+    },
+    {
+      "id": "R2",
+      "name": "Acme Corporation",
+      "domain": "acme.com",
+      "industry": "Tech",
+      "address": "123 Main Street, San Francisco, CA 94105",
+      "phone": "+1-415-555-0100"
+    }
+  ],
+  "min_confidence": 0.75
+}
+```
+
+**Response**: Returns top 20 match recommendations with confidence scores, risk levels, and evidence.
+
+**Example Request**:
+```bash
+curl -X POST "http://localhost:8000/resolve-entities" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "records": [
+      {"id": "R1", "name": "Acme Corp", "domain": "acme.com"},
+      {"id": "R2", "name": "Acme Corporation", "domain": "acme.com"}
+    ],
+    "min_confidence": 0.75
+  }'
+```
+
+**Example Response**:
+```json
+{
+  "total_matches": 1,
+  "summary": {
+    "by_risk_level": {"LOW": 1, "MEDIUM": 0, "HIGH": 0},
+    "by_action": {"AUTO_MERGE": 1},
+    "avg_confidence": 0.944
+  },
+  "recommendations": [
+    {
+      "record_1_id": "R1",
+      "record_2_id": "R2",
+      "confidence": 0.944,
+      "risk_level": "LOW",
+      "action": "AUTO_MERGE",
+      "evidence": [
+        {"type": "DOMAIN_MATCH", "score": 1.0, "details": "Same domain: acme.com"},
+        {"type": "PHONE_MATCH", "score": 1.0, "details": "Same phone number"}
+      ]
+    }
+  ]
+}
+```
+
+---
+
+#### POST /find-best-match
+
+**Description**: Find the best matching record for a single query against candidate records. Useful for real-time duplicate checking during data entry or finding canonical entities.
+
+**Request Body**:
+```json
+{
+  "target_record": {
+    "id": "Q1",
+    "name": "Acme Corp Inc",
+    "domain": "acme.com",
+    "industry": "Technology"
+  },
+  "candidate_records": [
+    {
+      "id": "C1",
+      "name": "Acme Corporation",
+      "domain": "acme.com",
+      "industry": "Tech"
+    }
+  ],
+  "threshold": 0.85
+}
+```
+
+**Response**: Best match details including confidence score, similarity breakdown, and recommended action.
+
+**Example Request**:
+```bash
+curl -X POST "http://localhost:8000/find-best-match" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "target_record": {"id": "Q1", "name": "Acme Corp Inc", "domain": "acme.com"},
+    "candidate_records": [
+      {"id": "C1", "name": "Acme Corporation", "domain": "acme.com"}
+    ],
+    "threshold": 0.85
+  }'
+```
+
+**Example Response**:
+```json
+{
+  "match_found": true,
+  "best_match": {
+    "candidate_id": "C1",
+    "confidence": 1.0,
+    "evidence": [
+      {"type": "DOMAIN_MATCH", "score": 1.0, "details": "Same domain: acme.com"}
+    ],
+    "risk_level": "LOW",
+    "action": "AUTO_MERGE"
+  },
+  "message": "Match found with 100.0% confidence. Recommended action: AUTO_MERGE"
+}
+```
+
+---
+
+### Confidence Thresholds & Actions
+
+| Confidence Range | Risk Level | Action | Description |
+|-----------------|------------|--------|-------------|
+| ≥ 0.90 | LOW | AUTO_MERGE | Records are highly likely duplicates, safe to merge automatically |
+| 0.75 - 0.89 | MEDIUM | REVIEW_REQUIRED | Manual review recommended before merging |
+| 0.60 - 0.74 | HIGH | INVESTIGATE | Low confidence match, investigate further |
+
+### Algorithm Weights
+
+The entity resolution algorithm uses the following field weights:
+- **Name Similarity**: 35% (fuzzy string matching)
+- **Domain Match**: 25% (exact email domain comparison)
+- **Industry Similarity**: 15% (semantic similarity)
+- **Address Similarity**: 10% (normalized address comparison)
+- **Phone Similarity**: 10% (formatted phone number match)
+- **Email Domain Match**: 5% (email domain consistency)
+
+---
+
+### Existing Endpoints (Phase 1 & 2)
+
+#### POST /generate-synthetic-data
+Generates synthetic dirty CRM data for testing.
+
+```bash
+curl -X POST "http://localhost:8000/generate-synthetic-data" \
+  -H "Content-Type: application/json" \
+  -d '{"num_records": 100}'
+```
+
+#### GET /quality-report
+Returns a data quality analysis report.
+
+```bash
+curl http://localhost:8000/quality-report
+```
+
+#### POST /detect-duplicates
+AI-powered duplicate detection with confidence scoring (Phase 2).
+
+```bash
+curl -X POST "http://localhost:8000/detect-duplicates" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
 ## Project Status
 
 | Phase | Description | Status |
 |-----------|------------|------------|
-| **1** | Data Engine & Synthetic Generation | ✅ |
-| **2** | AI Analysis (LLM Duplicate Detection) | ✅ |
-| **3** | Entity Resolution (Fuzzy Matching + AI)  | 🔜 |
-| **4** | Human Approval UI (React Frontend) | 🔜 |
-| **5** | Migration Simulator & Sandbox | 🔜 |
-| **6** | Production Engineering (CI/CD, Tests) | 🔜 |
+| **1** | Data Engine & Synthetic Generation | ✅ Complete |
+| **2** | AI Analysis (LLM Duplicate Detection) | ✅ Complete |
+| **3** | Entity Resolution (Fuzzy Matching + AI)  | ✅ Complete |
+| **4** | Human Approval UI (React Frontend) | 🔜 Pending |
+| **5** | Migration Simulator & Sandbox | 🔜 Pending |
+| **6** | Production Engineering (CI/CD, Tests) | 🔜 Pending |
