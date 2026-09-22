@@ -77,9 +77,11 @@ graph TD
 
 ## Quick Start
 
+For detailed execution instructions, expected outputs, and troubleshooting tips, see [EXECUTION_TIPS.md](EXECUTION_TIPS.md).
+
 ### Prerequisites
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
-- Git installed on your system.
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
+- Git installed on your system
 
 ### Installation & Run
 
@@ -90,16 +92,9 @@ cd enterprise-data-agent
 
 # Build and run containers
 docker compose up --build
-
-# Generate synthetic data (POST request)
-Invoke-WebRequest -Uri "http://localhost:8000/generate-synthetic-data" -Method POST
-
-# Get quality report (GET request)
-curl http://localhost:8000/quality-report
-
-# Detect duplicates with AI (POST request)
-Invoke-WebRequest -Uri "http://localhost:8000/detect-duplicates" -Method POST | Select-Object -ExpandProperty Content | ConvertFrom-Json
 ```
+
+For complete API examples and expected outputs, refer to [EXECUTION_TIPS.md](EXECUTION_TIPS.md).
 
 ## API Documentation
 
@@ -107,182 +102,17 @@ Once running, visit the auto-generated Swagger UI at http://localhost:8000/docs
 
 ### Entity Resolution API Endpoints (Phase 3)
 
-#### POST /resolve-entities
+- **POST /resolve-entities**: Batch entity resolution for multiple records using AI-powered record linkage. Identifies all potential duplicate pairs with confidence scores and risk assessments.
+- **POST /find-best-match**: Find the best matching record for a single query against candidate records. Useful for real-time duplicate checking during data entry.
 
-**Description**: Batch entity resolution for multiple records using AI-powered record linkage. This endpoint identifies all potential duplicate pairs in a dataset with confidence scores and risk assessments.
+**Confidence Thresholds:**
+| Confidence Range | Risk Level | Action |
+|-----------------|------------|--------|
+| ≥ 0.90 | LOW | AUTO_MERGE |
+| 0.75 - 0.89 | MEDIUM | REVIEW_REQUIRED |
+| 0.60 - 0.74 | HIGH | INVESTIGATE |
 
-**Request Body**:
-```json
-{
-  "records": [
-    {
-      "id": "R1",
-      "name": "Acme Corp",
-      "domain": "acme.com",
-      "industry": "Technology",
-      "address": "123 Main St, San Francisco, CA",
-      "phone": "+1-415-555-0100"
-    },
-    {
-      "id": "R2",
-      "name": "Acme Corporation",
-      "domain": "acme.com",
-      "industry": "Tech",
-      "address": "123 Main Street, San Francisco, CA 94105",
-      "phone": "+1-415-555-0100"
-    }
-  ],
-  "min_confidence": 0.75
-}
-```
-
-**Response**: Returns top 20 match recommendations with confidence scores, risk levels, and evidence.
-
-**Example Request**:
-```bash
-curl -X POST "http://localhost:8000/resolve-entities" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "records": [
-      {"id": "R1", "name": "Acme Corp", "domain": "acme.com"},
-      {"id": "R2", "name": "Acme Corporation", "domain": "acme.com"}
-    ],
-    "min_confidence": 0.75
-  }'
-```
-
-**Example Response**:
-```json
-{
-  "total_matches": 1,
-  "summary": {
-    "by_risk_level": {"LOW": 1, "MEDIUM": 0, "HIGH": 0},
-    "by_action": {"AUTO_MERGE": 1},
-    "avg_confidence": 0.944
-  },
-  "recommendations": [
-    {
-      "record_1_id": "R1",
-      "record_2_id": "R2",
-      "confidence": 0.944,
-      "risk_level": "LOW",
-      "action": "AUTO_MERGE",
-      "evidence": [
-        {"type": "DOMAIN_MATCH", "score": 1.0, "details": "Same domain: acme.com"},
-        {"type": "PHONE_MATCH", "score": 1.0, "details": "Same phone number"}
-      ]
-    }
-  ]
-}
-```
-
----
-
-#### POST /find-best-match
-
-**Description**: Find the best matching record for a single query against candidate records. Useful for real-time duplicate checking during data entry or finding canonical entities.
-
-**Request Body**:
-```json
-{
-  "target_record": {
-    "id": "Q1",
-    "name": "Acme Corp Inc",
-    "domain": "acme.com",
-    "industry": "Technology"
-  },
-  "candidate_records": [
-    {
-      "id": "C1",
-      "name": "Acme Corporation",
-      "domain": "acme.com",
-      "industry": "Tech"
-    }
-  ],
-  "threshold": 0.85
-}
-```
-
-**Response**: Best match details including confidence score, similarity breakdown, and recommended action.
-
-**Example Request**:
-```bash
-curl -X POST "http://localhost:8000/find-best-match" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "target_record": {"id": "Q1", "name": "Acme Corp Inc", "domain": "acme.com"},
-    "candidate_records": [
-      {"id": "C1", "name": "Acme Corporation", "domain": "acme.com"}
-    ],
-    "threshold": 0.85
-  }'
-```
-
-**Example Response**:
-```json
-{
-  "match_found": true,
-  "best_match": {
-    "candidate_id": "C1",
-    "confidence": 1.0,
-    "evidence": [
-      {"type": "DOMAIN_MATCH", "score": 1.0, "details": "Same domain: acme.com"}
-    ],
-    "risk_level": "LOW",
-    "action": "AUTO_MERGE"
-  },
-  "message": "Match found with 100.0% confidence. Recommended action: AUTO_MERGE"
-}
-```
-
----
-
-### Confidence Thresholds & Actions
-
-| Confidence Range | Risk Level | Action | Description |
-|-----------------|------------|--------|-------------|
-| ≥ 0.90 | LOW | AUTO_MERGE | Records are highly likely duplicates, safe to merge automatically |
-| 0.75 - 0.89 | MEDIUM | REVIEW_REQUIRED | Manual review recommended before merging |
-| 0.60 - 0.74 | HIGH | INVESTIGATE | Low confidence match, investigate further |
-
-### Algorithm Weights
-
-The entity resolution algorithm uses the following field weights:
-- **Name Similarity**: 35% (fuzzy string matching)
-- **Domain Match**: 25% (exact email domain comparison)
-- **Industry Similarity**: 15% (semantic similarity)
-- **Address Similarity**: 10% (normalized address comparison)
-- **Phone Similarity**: 10% (formatted phone number match)
-- **Email Domain Match**: 5% (email domain consistency)
-
----
-
-### Existing Endpoints (Phase 1 & 2)
-
-#### POST /generate-synthetic-data
-Generates synthetic dirty CRM data for testing.
-
-```bash
-curl -X POST "http://localhost:8000/generate-synthetic-data" \
-  -H "Content-Type: application/json" \
-  -d '{"num_records": 100}'
-```
-
-#### GET /quality-report
-Returns a data quality analysis report.
-
-```bash
-curl http://localhost:8000/quality-report
-```
-
-#### POST /detect-duplicates
-AI-powered duplicate detection with confidence scoring (Phase 2).
-
-```bash
-curl -X POST "http://localhost:8000/detect-duplicates" \
-  -H "Content-Type: application/json" \
-  -d '{}'
-```
+For detailed examples, request/response schemas, and expected outputs, see [EXECUTION_TIPS.md](EXECUTION_TIPS.md).
 
 ## Project Status
 
