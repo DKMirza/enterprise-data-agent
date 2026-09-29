@@ -460,11 +460,18 @@ docker-compose down --rmi all
 
 ---
 
-## 📖 Additional Resources
+## 📊 Algorithm Weights Reference
 
-- **Detailed API Examples:** [EXECUTION_TIPS.md](EXECUTION_TIPS.md)
-- **Frontend Setup Guide:** [frontend/SETUP_GUIDE.md](frontend/SETUP_GUIDE.md)
-- **Testing Instructions:** [TESTING_INSTRUCTIONS_UPDATED.md](TESTING_INSTRUCTIONS_UPDATED.md)
+The entity resolution algorithm uses the following field weights for matching:
+
+| Field | Weight | Method |
+|-------|--------|--------|
+| **Name Similarity** | 35% | Fuzzy string matching (Levenshtein) |
+| **Domain Match** | 25% | Exact email domain comparison |
+| **Industry Similarity** | 15% | Semantic similarity analysis |
+| **Address Similarity** | 10% | Normalized address comparison |
+| **Phone Similarity** | 10% | Formatted phone number match |
+| **Email Domain Match** | 5% | Email domain consistency check |
 
 ---
 
